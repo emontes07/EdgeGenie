@@ -1,0 +1,18 @@
+@base_url = http://localhost:7071/api
+
+########## Genie hosted local Functions API ##########
+
+### Health check
+GET {{base_url}}/health
+
+### Dry skin + dark spots + dewy finish
+GET {{base_url}}/products/recommendations?skinType=dry&concerns=dark%20spots&preference=dewy&limit=3
+
+### Oily skin + matte finish under budget
+GET {{base_url}}/products/recommendations?skinType=oily&finish=matte&maxPrice=35
+
+### Sensitive-safe routine ideas
+GET {{base_url}}/products/recommendations?skinType=sensitive&preference=fragrance-free
+
+### No-results fallback example
+GET {{base_url}}/products/recommendations?brand=unknown-brand&finish=matte&maxPrice=10

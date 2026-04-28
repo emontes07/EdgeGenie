@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
+  "id": "${{TEAMS_APP_ID}}",
+  "version": "1.1.0",
+  "developer": {
+    "name": "Genie Labs Demo",
+    "websiteUrl": "https://example.com/genie",
+    "privacyUrl": "https://example.com/genie/privacy",
+    "termsOfUseUrl": "https://example.com/genie/terms"
+  },
+  "icons": {
+    "color": "Ulta-192.png",
+    "outline": "Ulta-32.png"
+  },
+  "name": {
+    "short": "Genie",
+    "full": "Genie Beauty Advisor"
+  },
+  "description": {
+    "short": "Personalized beauty recommendations with richer product guidance.",
+    "full": "Genie is a declarative Microsoft 365 Copilot agent that helps users explore personalized beauty recommendations, richer product cards, and guided refinement paths."
+  },
+  "accentColor": "#F47C98",
+  "copilotAgents": {
+    "declarativeAgents": [
+      {
+        "id": "geniebeauty",
+        "file": "genie-declarative-agent.json"
+      }
+    ]
+  },
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "GENIE_SERVICE_NAME": "genie-functions-api",
+    "GENIE_MODE": "hosted-mock-compatible",
+    "GENIE_VERSION": "v1",
+    "GENIE_SHOP_BASE_URL": "https://www.ulta.com"
+  }
+}

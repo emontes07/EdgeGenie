@@ -1,0 +1,681 @@
+{
+  "schema_version": "v2.1",
+  "name_for_human": "Genie Beauty Advisor",
+  "description_for_human": "Provides richer beauty product recommendations with recommendation reasons, pricing context, comparison cards, and refinement guidance.",
+  "namespace": "genie",
+  "functions": [
+    {
+      "name": "getRecommendedProducts",
+      "description": "Returns curated beauty recommendations and card-ready display items based on profile details such as skin type, concerns, finish, brand, and budget.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$.results.displayItems",
+          "properties": {
+            "title": "$.title",
+            "subtitle": "$.subtitle",
+            "url": "$.primaryActionUrl"
+          },
+          "static_template": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.5",
+            "body": [
+              {
+                "type": "Container",
+                "$data": "${$root}",
+                "items": [
+                  {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "isVisible": "${cardType == 'featured'}",
+                    "items": [
+                      {
+                        "type": "TextBlock",
+                        "text": "${eyebrow}",
+                        "color": "Accent",
+                        "weight": "Bolder",
+                        "spacing": "None",
+                        "wrap": true
+                      },
+                      {
+                        "type": "Image",
+                        "url": "${imageUrl}",
+                        "altText": "${title}",
+                        "size": "Stretch",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${title}",
+                        "weight": "Bolder",
+                        "size": "Large",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${subtitle}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "None"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${highlightLine}",
+                        "color": "Good",
+                        "weight": "Bolder",
+                        "wrap": true,
+                        "spacing": "Medium",
+                        "isVisible": "${highlightLine != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${recommendationReason}",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "ColumnSet",
+                        "spacing": "Medium",
+                        "columns": [
+                          {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                              {
+                                "type": "TextBlock",
+                                "text": "${priceText}",
+                                "color": "Accent",
+                                "weight": "Bolder",
+                                "size": "Medium"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${originalPriceText}",
+                                "isSubtle": true,
+                                "spacing": "None",
+                                "wrap": true,
+                                "isVisible": "${originalPriceText != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${savingsText}",
+                                "color": "Good",
+                                "spacing": "None",
+                                "wrap": true,
+                                "isVisible": "${savingsText != ''}"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                              {
+                                "type": "TextBlock",
+                                "text": "${ratingText}",
+                                "isSubtle": true,
+                                "wrap": true,
+                                "horizontalAlignment": "Right"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${badgeLine}",
+                                "color": "Attention",
+                                "wrap": true,
+                                "horizontalAlignment": "Right",
+                                "spacing": "Small",
+                                "isVisible": "${badgeLine != ''}"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${tagLine}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "FactSet",
+                        "facts": "${facts}",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${description}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          },
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${secondaryActionTitle}",
+                            "url": "${secondaryActionUrl}"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "ActionSet",
+                        "isVisible": "${tertiaryActionTitle != ''}",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${tertiaryActionTitle}",
+                            "url": "${tertiaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "isVisible": "${cardType == 'list'}",
+                    "items": [
+                      {
+                        "type": "TextBlock",
+                        "text": "${eyebrow}",
+                        "color": "Accent",
+                        "weight": "Bolder",
+                        "spacing": "None",
+                        "wrap": true
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${title}",
+                        "weight": "Bolder",
+                        "size": "Medium",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${subtitle}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "None"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${description}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${recommendationReason}",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "FactSet",
+                        "facts": "${facts}",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${tagLine}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          },
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${secondaryActionTitle}",
+                            "url": "${secondaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "isVisible": "${cardType == 'comparison'}",
+                    "items": [
+                      {
+                        "type": "TextBlock",
+                        "text": "${title}",
+                        "weight": "Bolder",
+                        "size": "Medium",
+                        "wrap": true
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${subtitle}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${comparisonReason}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "ColumnSet",
+                        "spacing": "Medium",
+                        "columns": [
+                          {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                              {
+                                "type": "TextBlock",
+                                "text": "${leftTitle}",
+                                "weight": "Bolder",
+                                "wrap": true
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${leftSubtitle}",
+                                "isSubtle": true,
+                                "wrap": true,
+                                "spacing": "None"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${leftPriceText}",
+                                "color": "Accent",
+                                "weight": "Bolder",
+                                "spacing": "Small"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${leftReasonText}",
+                                "wrap": true,
+                                "spacing": "Small"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                              {
+                                "type": "TextBlock",
+                                "text": "${rightTitle}",
+                                "weight": "Bolder",
+                                "wrap": true
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${rightSubtitle}",
+                                "isSubtle": true,
+                                "wrap": true,
+                                "spacing": "None"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${rightPriceText}",
+                                "color": "Accent",
+                                "weight": "Bolder",
+                                "spacing": "Small"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${rightReasonText}",
+                                "wrap": true,
+                                "spacing": "Small"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "isVisible": "${cardType == 'product'}",
+                    "items": [
+                      {
+                        "type": "ColumnSet",
+                        "columns": [
+                          {
+                            "type": "Column",
+                            "width": "auto",
+                            "items": [
+                              {
+                                "type": "Image",
+                                "url": "${imageUrl}",
+                                "altText": "${title}",
+                                "size": "Medium"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                              {
+                                "type": "TextBlock",
+                                "text": "${title}",
+                                "weight": "Bolder",
+                                "size": "Medium",
+                                "wrap": true
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${subtitle}",
+                                "isSubtle": true,
+                                "wrap": true,
+                                "spacing": "None"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${recommendationReason}",
+                                "wrap": true,
+                                "spacing": "Small"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${priceText}",
+                        "color": "Accent",
+                        "weight": "Bolder",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${originalPriceText}",
+                        "isSubtle": true,
+                        "spacing": "None",
+                        "wrap": true,
+                        "isVisible": "${originalPriceText != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${savingsText}",
+                        "color": "Good",
+                        "spacing": "None",
+                        "wrap": true,
+                        "isVisible": "${savingsText != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${ratingText}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${badgeLine}",
+                        "color": "Attention",
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${badgeLine != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${tagLine}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "None",
+                        "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "FactSet",
+                        "facts": "${facts}",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${description}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${reasonSignalsText}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${reasonSignalsText != ''}"
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          },
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${secondaryActionTitle}",
+                            "url": "${secondaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "isVisible": "${cardType == 'fallback'}",
+                    "items": [
+                      {
+                        "type": "TextBlock",
+                        "text": "${title}",
+                        "weight": "Bolder",
+                        "size": "Medium",
+                        "wrap": true
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${subtitle}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${description}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${recommendationReason}",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "FactSet",
+                        "facts": "${facts}",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${tagLine}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          },
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${secondaryActionTitle}",
+                            "url": "${secondaryActionUrl}"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "ActionSet",
+                        "isVisible": "${tertiaryActionTitle != ''}",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${tertiaryActionTitle}",
+                            "url": "${tertiaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "isVisible": "${cardType == 'refinement'}",
+                    "items": [
+                      {
+                        "type": "TextBlock",
+                        "text": "${eyebrow}",
+                        "color": "Accent",
+                        "weight": "Bolder",
+                        "spacing": "None",
+                        "wrap": true
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${title}",
+                        "weight": "Bolder",
+                        "size": "Medium",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${subtitle}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "None"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${description}",
+                        "wrap": true,
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${recommendationReason}",
+                        "wrap": true,
+                        "spacing": "Small"
+                      },
+                      {
+                        "type": "FactSet",
+                        "facts": "${facts}",
+                        "spacing": "Medium"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${tagLine}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "ActionSet",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${primaryActionTitle}",
+                            "url": "${primaryActionUrl}"
+                          },
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${secondaryActionTitle}",
+                            "url": "${secondaryActionUrl}"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "ActionSet",
+                        "isVisible": "${tertiaryActionTitle != ''}",
+                        "actions": [
+                          {
+                            "type": "Action.OpenUrl",
+                            "title": "${tertiaryActionTitle}",
+                            "url": "${tertiaryActionUrl}"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": {
+        "type": "None"
+      },
+      "spec": {
+        "url": "genie-definition.json"
+      },
+      "run_for_functions": [
+        "getRecommendedProducts"
+      ]
+    }
+  ],
+  "capabilities": {
+    "localization": {},
+    "conversation_starters": [
+      {
+        "text": "Build me a skincare routine for dry, sensitive skin."
+      },
+      {
+        "text": "Compare dewy complexion products under $35."
+      },
+      {
+        "text": "Show products that help with dark spots and dullness."
+      }
+    ]
+  }
+}

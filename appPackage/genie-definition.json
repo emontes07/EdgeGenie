@@ -1,0 +1,418 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "version": "1.1.0",
+    "title": "Genie Beauty Recommendation API",
+    "description": "API for personalized beauty recommendations, richer Adaptive Card display items, and refinement guidance."
+  },
+  "servers": [
+    {
+      "url": "${{OPENAPI_SERVER_URL}}/api",
+      "description": "Genie local or hosted API"
+    }
+  ],
+  "paths": {
+    "/products/recommendations": {
+      "get": {
+        "operationId": "getRecommendedProducts",
+        "summary": "Get personalized beauty recommendations",
+        "description": "Returns recommendation data plus card-ready display items for featured product cards, recommendation summary cards, comparison cards, product cards, refinement cards, and no-results fallback cards.",
+        "parameters": [
+          {
+            "name": "age",
+            "in": "query",
+            "description": "Optional age range hint used to prioritize products for concerns such as visible aging.",
+            "schema": { "type": "integer", "minimum": 0 },
+            "required": false
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "description": "Optional profile detail for tone and wording only.",
+            "schema": { "type": "string" },
+            "required": false
+          },
+          {
+            "name": "skinType",
+            "in": "query",
+            "description": "Skin type to optimize recommendations for.",
+            "schema": {
+              "type": "string",
+              "enum": ["dry", "oily", "combination", "normal", "sensitive"]
+            },
+            "required": false
+          },
+          {
+            "name": "concerns",
+            "in": "query",
+            "description": "One or more target concerns. Repeat the query parameter or provide a comma-separated list.",
+            "schema": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "required": false,
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "preference",
+            "in": "query",
+            "description": "Desired texture, experience, or shopping preference such as hydrating, dewy, fragrance-free, or lightweight.",
+            "schema": { "type": "string" },
+            "required": false
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "Optional exact brand filter.",
+            "schema": { "type": "string" },
+            "required": false
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "description": "Optional minimum price filter.",
+            "schema": { "type": "number", "minimum": 0 },
+            "required": false
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "description": "Optional maximum price filter.",
+            "schema": { "type": "number", "minimum": 0 },
+            "required": false
+          },
+          {
+            "name": "finish",
+            "in": "query",
+            "description": "Desired finish for complexion products or moisturizers.",
+            "schema": {
+              "type": "string",
+              "enum": ["matte", "dewy", "natural"]
+            },
+            "required": false
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of products to return. The API may also add a comparison card ahead of the products.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "default": 3
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful recommendation response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealthStatus",
+        "summary": "Get API health status",
+        "description": "Simple health endpoint for local smoke tests and future Azure monitoring.",
+        "responses": {
+          "200": {
+            "description": "Healthy response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RecommendationResponse": {
+        "type": "object",
+        "required": ["requestId", "status", "results"],
+        "properties": {
+          "requestId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["success", "no_results", "error"]
+          },
+          "results": {
+            "$ref": "#/components/schemas/RecommendationResults"
+          }
+        }
+      },
+      "RecommendationResults": {
+        "type": "object",
+        "required": ["status", "generatedAt", "summary", "products", "displayItems", "refinements", "errors"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["success", "no_results"]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "query": {
+            "$ref": "#/components/schemas/RecommendationQuery"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/RecommendationSummary"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductRecommendation"
+            }
+          },
+          "displayItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DisplayItem"
+            }
+          },
+          "refinements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Refinement"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "RecommendationQuery": {
+        "type": "object",
+        "properties": {
+          "age": { "type": "integer", "nullable": true },
+          "gender": { "type": "string", "nullable": true },
+          "skinType": { "type": "string", "nullable": true },
+          "concerns": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "preference": { "type": "string", "nullable": true },
+          "brand": { "type": "string", "nullable": true },
+          "minPrice": { "type": "number", "nullable": true },
+          "maxPrice": { "type": "number", "nullable": true },
+          "finish": { "type": "string", "nullable": true },
+          "limit": { "type": "integer" }
+        }
+      },
+      "RecommendationSummary": {
+        "type": "object",
+        "required": ["headline", "recommendationReason", "appliedFilters", "resultCount", "presentationMode", "featuredProductId", "featuredReason", "refinementHint"],
+        "properties": {
+          "headline": { "type": "string" },
+          "recommendationReason": { "type": "string" },
+          "appliedFilters": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "resultCount": { "type": "integer" },
+          "presentationMode": {
+            "type": "string",
+            "enum": ["featured", "comparison", "list", "fallback"]
+          },
+          "featuredProductId": { "type": "string" },
+          "featuredReason": { "type": "string" },
+          "refinementHint": { "type": "string" }
+        }
+      },
+      "ProductRecommendation": {
+        "type": "object",
+        "required": ["id", "productName", "brand", "category", "description", "imageUrl", "productUrl", "price", "rating", "reviewCount", "badges", "tags", "ranking", "recommendation", "facts"],
+        "properties": {
+          "id": { "type": "string" },
+          "productName": { "type": "string" },
+          "brand": { "type": "string" },
+          "category": { "type": "string" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string", "format": "uri" },
+          "productUrl": { "type": "string", "format": "uri" },
+          "price": { "$ref": "#/components/schemas/ProductPrice" },
+          "finish": { "type": "string" },
+          "rating": { "type": "number" },
+          "reviewCount": { "type": "integer" },
+          "badges": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "ranking": {
+            "type": "object",
+            "required": ["score", "reasonSignals"],
+            "properties": {
+              "score": { "type": "number" },
+              "reasonSignals": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "recommendation": {
+            "type": "object",
+            "required": ["reasonShort", "reasonDetail"],
+            "properties": {
+              "reasonShort": { "type": "string" },
+              "reasonDetail": { "type": "string" }
+            }
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FactItem"
+            }
+          }
+        }
+      },
+      "ProductPrice": {
+        "type": "object",
+        "required": ["current", "original", "currency", "formattedCurrent", "formattedOriginal", "savingsText"],
+        "properties": {
+          "current": { "type": "number" },
+          "original": { "type": "number" },
+          "currency": { "type": "string" },
+          "formattedCurrent": { "type": "string" },
+          "formattedOriginal": { "type": "string" },
+          "savingsText": { "type": "string" }
+        }
+      },
+      "DisplayItem": {
+        "type": "object",
+        "required": ["cardType", "id", "title", "subtitle"],
+        "properties": {
+          "cardType": {
+            "type": "string",
+            "enum": ["featured", "list", "product", "comparison", "fallback", "refinement"]
+          },
+          "id": { "type": "string" },
+          "rank": { "type": "integer", "nullable": true },
+          "eyebrow": { "type": "string", "nullable": true },
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "imageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "recommendationReason": { "type": "string", "nullable": true },
+          "reasonSignalsText": { "type": "string", "nullable": true },
+          "highlightLine": { "type": "string", "nullable": true },
+          "badgeLine": { "type": "string", "nullable": true },
+          "tagLine": { "type": "string", "nullable": true },
+          "priceText": { "type": "string", "nullable": true },
+          "originalPriceText": { "type": "string", "nullable": true },
+          "savingsText": { "type": "string", "nullable": true },
+          "ratingText": { "type": "string", "nullable": true },
+          "facts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FactItem"
+            }
+          },
+          "comparisonReason": { "type": "string", "nullable": true },
+          "leftTitle": { "type": "string", "nullable": true },
+          "leftSubtitle": { "type": "string", "nullable": true },
+          "leftPriceText": { "type": "string", "nullable": true },
+          "leftReasonText": { "type": "string", "nullable": true },
+          "rightTitle": { "type": "string", "nullable": true },
+          "rightSubtitle": { "type": "string", "nullable": true },
+          "rightPriceText": { "type": "string", "nullable": true },
+          "rightReasonText": { "type": "string", "nullable": true },
+          "primaryActionTitle": { "type": "string", "nullable": true },
+          "primaryActionUrl": { "type": "string", "format": "uri", "nullable": true },
+          "secondaryActionTitle": { "type": "string", "nullable": true },
+          "secondaryActionUrl": { "type": "string", "format": "uri", "nullable": true },
+          "tertiaryActionTitle": { "type": "string", "nullable": true },
+          "tertiaryActionUrl": { "type": "string", "format": "uri", "nullable": true }
+        }
+      },
+      "FactItem": {
+        "type": "object",
+        "required": ["title", "value"],
+        "properties": {
+          "title": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      },
+      "Refinement": {
+        "type": "object",
+        "required": ["id", "label", "url"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": ["statusCode", "message"],
+        "properties": {
+          "statusCode": { "type": "integer" },
+          "message": { "type": "string" },
+          "details": { "type": "string", "nullable": true }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": ["requestId", "status", "error"],
+        "properties": {
+          "requestId": { "type": "string" },
+          "status": { "type": "string", "enum": ["error"] },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "service", "generatedAt", "catalogSize"],
+        "properties": {
+          "status": { "type": "string" },
+          "service": { "type": "string" },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "catalogSize": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+    "name": "genie",
+    "version": "1.0.0",
+    "scripts": {
+        "dev:teamsfx": "env-cmd --silent -f .localConfigs npm run dev",
+        "hosted:start": "./devTools/func/func start --port \"7071\" --cors \"*\"",
+        "hosted:start:debug": "npm run dev",
+        "dev": "./devTools/func/func start --typescript --language-worker=\"--inspect=9229\" --port \"7071\" --cors \"*\"",
+        "build": "tsc",
+        "watch:teamsfx": "tsc --watch",
+        "watch": "tsc -w",
+        "prestart": "npm run build",
+        "start": "./devTools/func/func start",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "reset-local-db": "node ./scripts/db-setup.js UseDevelopmentStorage=true --reset",
+        "storage": "azurite --silent --location ./_storage_emulator --debug ./_storage_emulator/debug.log",
+        "mock:start": "node genie-api-server.js"
+    },
+    "dependencies": {
+        "@azure/functions": "^4.3.0",
+        "@azure/data-tables": "^13.2.2",
+        "azurite": "^3.26.0"
+    },
+    "devDependencies": {
+        "env-cmd": "^10.1.0",
+        "@types/node": "^18.11.9",
+        "typescript": "^4.1.6"
+    },
+    "main": "dist/src/functions/*.js",
+    "description": "Genie declarative agent demo and Azure Functions prototype workspace."
+}
