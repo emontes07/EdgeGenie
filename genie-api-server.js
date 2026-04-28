@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Genie mock API listening at http://${HOST}:${PORT}`);
+  console.log(`Edgewell Sales Genie mock API listening at http://${HOST}:${PORT}`);
   console.log(`Health endpoint: http://localhost:${PORT}/api/health`);
   console.log(`Recommendations endpoint: http://localhost:${PORT}/api/products/recommendations`);
 });

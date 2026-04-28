@@ -36,7 +36,7 @@ function formatMoney(amount, currency = 'USD') {
 }
 
 function buildSearchUrl(queryText) {
-  return `https://www.ulta.com/search?search=${encodeURIComponent(queryText)}`;
+  return `https://example.com/edgewell-sales-genie/search?query=${encodeURIComponent(queryText)}`;
 }
 
 function normalizeQuery(rawQuery = {}) {
@@ -71,45 +71,92 @@ function normalizeQuery(rawQuery = {}) {
   return normalized;
 }
 
+function toSearchableText(values) {
+  return values.map((value) => value.trim().toLowerCase()).filter(Boolean);
+}
+
+function findMatches(queryValues, candidates) {
+  const normalizedCandidates = toSearchableText(candidates);
+  return dedupe(
+    queryValues.filter((queryValue) =>
+      normalizedCandidates.some((candidate) => candidate.includes(queryValue) || queryValue.includes(candidate))
+    )
+  );
+}
+
+function buildMatchSource(product) {
+  return [
+    product.category,
+    product.subcategory,
+    product.description,
+    product.finish,
+    product.keyIngredient,
+    product.suggestedPitch,
+    product.competitivePositioning,
+    ...product.skinTypes,
+    ...product.concerns,
+    ...product.preferences,
+    ...product.keyBenefits,
+    ...product.retailerContext,
+    ...product.bundleIdeas,
+    ...product.talkingPoints,
+    ...product.objectionHandling,
+    ...product.seasonality,
+    ...product.badges,
+    ...product.tags,
+  ];
+}
+
+function toSentenceList(values, limit = 3) {
+  return values.slice(0, limit).join('; ');
+}
+
 function scoreProduct(product, query) {
   let score = 0;
   const signals = [];
+  const matchSource = buildMatchSource(product);
 
   if (query.skinType && product.skinTypes.includes(query.skinType)) {
-    score += 3;
-    signals.push(`${toTitleCase(query.skinType)} skin support`);
+    score += 2;
+    signals.push(`${toTitleCase(query.skinType)} shopper relevance`);
   }
 
   if (query.finish && product.finish === query.finish) {
-    score += 2;
-    signals.push(`${toTitleCase(query.finish)} finish`);
+    score += 1;
+    signals.push(`${toTitleCase(query.finish)} merchandising fit`);
   }
 
   if (query.preference) {
-    const preferenceMatch = product.preferences.find((item) => item.includes(query.preference));
-    if (preferenceMatch) {
-      score += 2;
-      signals.push(toTitleCase(preferenceMatch));
+    const preferenceMatches = findMatches([query.preference], matchSource);
+    if (preferenceMatches.length > 0) {
+      score += 3;
+      signals.push(...preferenceMatches.slice(0, 2).map((item) => `Focus: ${toTitleCase(item)}`));
     }
   }
 
   if (query.concerns.length > 0) {
-    const concernMatches = query.concerns.filter((concern) =>
-      product.concerns.some((item) => item.includes(concern))
-    );
+    const concernMatches = findMatches(query.concerns, matchSource);
     if (concernMatches.length > 0) {
       score += concernMatches.length * 2;
-      signals.push(...concernMatches.map(toTitleCase));
+      signals.push(...concernMatches.slice(0, 3).map(toTitleCase));
     }
   }
 
-  if (typeof query.age === 'number' && query.age >= 40) {
-    const matureSkinMatch = ['aging', 'fine lines', 'barrier support', 'dehydration'].some((tag) =>
-      product.concerns.includes(tag)
+  if (query.brand && product.brand.toLowerCase() === query.brand) {
+    score += 2;
+    signals.push(`${product.brand} portfolio match`);
+  }
+
+  if (query.gender) {
+    const isWomenFocused = ['women\'s razor', 'women\'s shave gel', 'women\'s grooming'].some((term) =>
+      product.subcategory.toLowerCase().includes(term)
     );
-    if (matureSkinMatch) {
+    const genderSignals = query.gender.includes('female') || query.gender.includes('women')
+      ? isWomenFocused
+      : query.gender.includes('male') || query.gender.includes('men');
+    if (genderSignals) {
       score += 1;
-      signals.push('Supports visible aging concerns');
+      signals.push('Audience-aligned assortment');
     }
   }
 
@@ -140,6 +187,9 @@ function filterCatalog(query) {
 }
 
 function buildProduct(product, query, ranking) {
+  const matchSource = buildMatchSource(product);
+  const concernMatches = query.concerns.length > 0 ? findMatches(query.concerns, matchSource) : [];
+  const preferenceMatches = query.preference ? findMatches([query.preference], matchSource) : [];
   const price = {
     current: product.price,
     original: product.originalPrice,
@@ -150,20 +200,20 @@ function buildProduct(product, query, ranking) {
   };
 
   const reasonParts = [];
+  if (query.brand && product.brand.toLowerCase() === query.brand) {
+    reasonParts.push(`anchors the ${product.brand} story`);
+  }
+  if (concernMatches.length > 0) {
+    reasonParts.push(`supports ${concernMatches.slice(0, 2).join(' and ')}`);
+  }
+  if (preferenceMatches.length > 0) {
+    reasonParts.push(`fits ${preferenceMatches.slice(0, 2).join(' and ')} execution`);
+  }
   if (query.skinType && product.skinTypes.includes(query.skinType)) {
-    reasonParts.push(`supports ${query.skinType} skin`);
-  }
-  if (query.concerns.length > 0) {
-    const concernMatch = query.concerns.filter((concern) => product.concerns.includes(concern));
-    if (concernMatch.length > 0) {
-      reasonParts.push(`targets ${concernMatch.join(' and ')}`);
-    }
-  }
-  if (query.preference && product.preferences.some((item) => item.includes(query.preference))) {
-    reasonParts.push(`matches a ${query.preference} preference`);
+    reasonParts.push(`covers ${query.skinType} shopper needs`);
   }
   if (reasonParts.length === 0) {
-    reasonParts.push('balances strong reviews, price, and fit for the request');
+    reasonParts.push('combines retailer fit, seasonality, and bundle potential');
   }
 
   return {
@@ -171,9 +221,17 @@ function buildProduct(product, query, ranking) {
     productName: product.productName,
     brand: product.brand,
     category: product.subcategory,
-    description: product.description,
+    description: `${product.description} Best fit for ${product.retailerContext.join(', ')}.`,
     imageUrl: product.imageUrl,
     productUrl: product.productUrl,
+    keyBenefits: product.keyBenefits,
+    competitivePositioning: product.competitivePositioning,
+    retailerContext: product.retailerContext,
+    bundleIdeas: product.bundleIdeas,
+    talkingPoints: product.talkingPoints,
+    objectionHandling: product.objectionHandling,
+    seasonality: product.seasonality,
+    suggestedPitch: product.suggestedPitch,
     price,
     finish: product.finish,
     rating: product.rating,
@@ -189,9 +247,10 @@ function buildProduct(product, query, ranking) {
       reasonDetail: ranking.signals.join(' • '),
     },
     facts: [
-      { title: 'Best for', value: product.skinTypes.map(toTitleCase).join(', ') },
-      { title: 'Finish', value: toTitleCase(product.finish) },
-      { title: 'Key ingredient', value: product.keyIngredient },
+      { title: 'Talking Points', value: toSentenceList(product.talkingPoints, 2) },
+      { title: 'Why It Wins', value: product.competitivePositioning },
+      { title: 'Suggested Pitch', value: product.suggestedPitch },
+      { title: 'Bundle Idea', value: product.bundleIdeas[0] || 'Use as a standalone focus item.' },
     ],
   };
 }
@@ -206,20 +265,24 @@ function createProductDisplayItem(product, index, variant = 'full') {
     title: product.productName,
     subtitle: `${product.brand} • ${product.category}`,
     imageUrl: product.imageUrl,
-    productUrl: product.productUrl,
     description: product.description,
     recommendationReason: product.recommendation.reasonShort,
-    reasonSignalsText: isCompact ? '' : product.recommendation.reasonDetail,
+    reasonSignalsText: isCompact ? '' : `Talking points: ${toSentenceList(product.talkingPoints)}`,
+    sellingPointsText: product.keyBenefits.join(' • '),
+    competitiveAngle: product.competitivePositioning,
+    suggestedPitch: product.suggestedPitch,
+    bundleIdea: product.bundleIdeas[0] || '',
+    retailerContextText: `Retailer context: ${product.retailerContext.join(', ')}`,
     badgeLine: isCompact ? product.badges.slice(0, 1).join(' • ') : product.badges.join(' • '),
-    tagLine: isCompact ? product.tags.slice(0, 2).join(' • ') : product.tags.join(' • '),
+    tagLine: isCompact ? product.seasonality.slice(0, 2).join(' • ') : product.seasonality.join(' • '),
     priceText: product.price.formattedCurrent,
     originalPriceText: product.price.formattedOriginal,
     savingsText: product.price.savingsText,
-    ratingText: `${product.rating.toFixed(1)} stars (${product.reviewCount.toLocaleString()} reviews)`,
-    facts: isCompact ? product.facts.slice(0, 2) : product.facts,
-    primaryActionTitle: 'View product',
+    ratingText: `Retail fit score: ${product.rating.toFixed(1)}/5`,
+    facts: isCompact ? product.facts.slice(0, 3) : product.facts,
+    primaryActionTitle: 'Open product brief',
     primaryActionUrl: product.productUrl,
-    secondaryActionTitle: 'Shop similar',
+    secondaryActionTitle: 'See adjacent items',
     secondaryActionUrl: buildSearchUrl(`${product.brand} ${product.category}`),
     tertiaryActionTitle: '',
     tertiaryActionUrl: '',
@@ -230,26 +293,31 @@ function createFeaturedDisplayItem(product, summary) {
   return {
     cardType: 'featured',
     id: `featured-${product.id}`,
-    eyebrow: 'Featured match',
+    eyebrow: 'Featured sales lead',
     title: product.productName,
     subtitle: `${product.brand} • ${product.category}`,
     imageUrl: product.imageUrl,
     description: product.description,
     recommendationReason: product.recommendation.reasonShort,
     reasonSignalsText: product.recommendation.reasonDetail,
+    sellingPointsText: product.keyBenefits.join(' • '),
+    competitiveAngle: product.competitivePositioning,
+    suggestedPitch: product.suggestedPitch,
+    bundleIdea: product.bundleIdeas[0] || '',
+    retailerContextText: `Retailer context: ${product.retailerContext.join(', ')}`,
     highlightLine: summary.featuredReason,
     badgeLine: product.badges.join(' • '),
-    tagLine: product.tags.join(' • '),
+    tagLine: product.seasonality.join(' • '),
     priceText: product.price.formattedCurrent,
     originalPriceText: product.price.formattedOriginal,
     savingsText: product.price.savingsText,
-    ratingText: `${product.rating.toFixed(1)} stars (${product.reviewCount.toLocaleString()} reviews)`,
+    ratingText: `Retail fit score: ${product.rating.toFixed(1)}/5`,
     facts: product.facts,
-    primaryActionTitle: 'View featured pick',
+    primaryActionTitle: 'Open featured brief',
     primaryActionUrl: product.productUrl,
-    secondaryActionTitle: 'Browse similar',
-    secondaryActionUrl: buildSearchUrl(`${product.brand} ${product.category}`),
-    tertiaryActionTitle: summary.resultCount > 1 ? 'See all picks' : '',
+    secondaryActionTitle: 'Browse same brand',
+    secondaryActionUrl: buildSearchUrl(`${product.brand} field sales pitch`),
+    tertiaryActionTitle: summary.resultCount > 1 ? 'See full set' : '',
     tertiaryActionUrl: summary.resultCount > 1 ? buildSearchUrl(summary.headline) : '',
   };
 }
@@ -259,19 +327,19 @@ function createRecommendationsListDisplayItem(products, summary) {
     cardType: 'list',
     id: 'recommendations-list',
     eyebrow: 'At a glance',
-    title: 'Top recommendations',
-    subtitle: `${products.length} curated match${products.length === 1 ? '' : 'es'}`,
+    title: 'Top sales recommendations',
+    subtitle: `${products.length} seller option${products.length === 1 ? '' : 's'}`,
     description: summary.headline,
     recommendationReason: summary.recommendationReason,
     facts: products.map((product, index) => ({
       title: `#${index + 1}`,
-      value: `${product.productName} • ${product.price.formattedCurrent} • ${product.recommendation.reasonDetail || product.recommendation.reasonShort}`,
+      value: `${product.productName} • ${product.brand} • ${product.keyBenefits[0]} • ${product.suggestedPitch}`,
     })),
     tagLine: summary.appliedFilters.join(' • '),
-    primaryActionTitle: 'Browse all picks',
+    primaryActionTitle: 'Browse full recommendation set',
     primaryActionUrl: buildSearchUrl(summary.headline),
-    secondaryActionTitle: products[1] ? 'Compare top 2' : 'Open featured pick',
-    secondaryActionUrl: products[1] ? buildSearchUrl(`${products[0].productName} ${products[1].productName}`) : products[0].productUrl,
+    secondaryActionTitle: products[1] ? 'Compare top 2' : 'Open featured brief',
+    secondaryActionUrl: products[1] ? buildSearchUrl(`${products[0].productName} versus ${products[1].productName}`) : products[0].productUrl,
     tertiaryActionTitle: '',
     tertiaryActionUrl: '',
   };
@@ -288,18 +356,18 @@ function createComparisonDisplayItem(products, summary) {
   return {
     cardType: 'comparison',
     id: 'comparison-top-2',
-    title: 'Compare your top matches',
+    title: 'Compare your top pitches',
     subtitle: summary.headline,
-    comparisonReason: `${first.productName} leads on overall fit, while ${second.productName} offers a strong alternative on price or finish.`,
+    comparisonReason: `${first.productName} leads on immediate fit, while ${second.productName} gives you an alternate angle on price pack, seasonality, or retailer context.`,
     leftTitle: first.productName,
     leftSubtitle: `${first.brand} • ${first.category}`,
     leftPriceText: first.price.formattedCurrent,
-    leftReasonText: first.recommendation.reasonDetail || 'Strong overall fit',
+    leftReasonText: first.competitivePositioning,
     rightTitle: second.productName,
     rightSubtitle: `${second.brand} • ${second.category}`,
     rightPriceText: second.price.formattedCurrent,
-    rightReasonText: second.recommendation.reasonDetail || 'Strong alternative',
-    primaryActionTitle: 'Browse top picks',
+    rightReasonText: second.competitivePositioning,
+    primaryActionTitle: 'Browse top pitches',
     primaryActionUrl: buildSearchUrl(summary.headline),
   };
 }
@@ -307,20 +375,20 @@ function createComparisonDisplayItem(products, summary) {
 function buildAppliedFilters(query) {
   const filters = [];
 
-  if (query.skinType) {
-    filters.push(toTitleCase(query.skinType));
+  if (query.brand) {
+    filters.push(`Brand: ${toTitleCase(query.brand)}`);
   }
   if (query.concerns.length > 0) {
     filters.push(...query.concerns.map(toTitleCase));
   }
   if (query.preference) {
-    filters.push(toTitleCase(query.preference));
+    filters.push(`Focus: ${toTitleCase(query.preference)}`);
+  }
+  if (query.skinType) {
+    filters.push(`Shopper: ${toTitleCase(query.skinType)}`);
   }
   if (query.finish) {
-    filters.push(toTitleCase(query.finish));
-  }
-  if (query.brand) {
-    filters.push(`Brand: ${toTitleCase(query.brand)}`);
+    filters.push(`Merchandising: ${toTitleCase(query.finish)}`);
   }
   if (typeof query.maxPrice === 'number') {
     filters.push(`Under ${formatMoney(query.maxPrice)}`);
@@ -333,21 +401,19 @@ function buildAppliedFilters(query) {
 }
 
 function createFallbackDisplayItem(query, refinements) {
-  const filterSummary = buildAppliedFilters(query).join(', ');
-
   return {
     cardType: 'fallback',
     id: 'fallback-no-results',
-    title: 'No exact matches yet',
-    subtitle: filterSummary ? `Tried filters: ${filterSummary}` : 'Try broadening the request',
-    description: 'The current filters are likely too narrow for the mock catalog. A broader query usually returns stronger recommendations.',
-    recommendationReason: 'Try removing one filter, widening the price range, or switching to a broader concern such as hydration or glow.',
-    badgeLine: 'Refine your search',
+    title: 'No exact sales match yet',
+    subtitle: buildAppliedFilters(query).length > 0 ? `Tried filters: ${buildAppliedFilters(query).join(', ')}` : 'Try a broader retailer or seasonal angle',
+    description: 'The current filters are likely too narrow for the mock Edgewell portfolio. Broadening the retailer, season, or bundle angle usually returns stronger sell-in ideas.',
+    recommendationReason: 'Try a broader brand story, a retailer-specific focus, or a seasonal event such as summer or back-to-school.',
+    badgeLine: 'Refine the pitch',
     tagLine: refinements.map((item) => item.label).join(' • '),
-    primaryActionTitle: refinements[0]?.label || 'Browse skincare',
-    primaryActionUrl: refinements[0]?.url || buildSearchUrl('hydrating skincare'),
-    secondaryActionTitle: refinements[1]?.label || 'Browse makeup',
-    secondaryActionUrl: refinements[1]?.url || buildSearchUrl('dewy skin tint'),
+    primaryActionTitle: refinements[0]?.label || 'Summer promotion ideas',
+    primaryActionUrl: refinements[0]?.url || buildSearchUrl('summer promotion ideas'),
+    secondaryActionTitle: refinements[1]?.label || 'Back-to-school bundles',
+    secondaryActionUrl: refinements[1]?.url || buildSearchUrl('back-to-school bundles'),
     tertiaryActionTitle: refinements[2]?.label || '',
     tertiaryActionUrl: refinements[2]?.url || '',
     facts: buildAppliedFilters(query).map((filter, index) => ({
@@ -360,30 +426,26 @@ function createFallbackDisplayItem(query, refinements) {
 function createRefinements(query) {
   const refinements = [];
 
-  if (query.skinType) {
+  if (query.brand) {
     refinements.push({
-      id: 'broaden-skin-type',
-      label: `Broaden beyond ${toTitleCase(query.skinType)}`,
-      url: buildSearchUrl(`${query.skinType} skincare`),
+      id: 'broader-brand-story',
+      label: `See broader ${toTitleCase(query.brand)} story`,
+      url: buildSearchUrl(`${query.brand} retail pitch`),
+    });
+  }
+
+  if (query.preference) {
+    refinements.push({
+      id: 'retailer-specific',
+      label: `More for ${toTitleCase(query.preference)}`,
+      url: buildSearchUrl(`${query.preference} talking points`),
     });
   }
 
   refinements.push(
-    {
-      id: 'hydrating-picks',
-      label: 'Try hydrating picks',
-      url: buildSearchUrl('hydrating skincare'),
-    },
-    {
-      id: 'under-35',
-      label: 'See top products under $35',
-      url: buildSearchUrl('best beauty products under 35'),
-    },
-    {
-      id: 'sensitive-safe',
-      label: 'Explore sensitive-safe options',
-      url: buildSearchUrl('sensitive skin skincare'),
-    }
+    { id: 'summer-promo', label: 'Summer promotion ideas', url: buildSearchUrl('summer promotion sun care') },
+    { id: 'back-to-school', label: 'Back-to-school bundles', url: buildSearchUrl('back-to-school bundles') },
+    { id: 'walmart-pitch', label: 'Walmart talking points', url: buildSearchUrl('Walmart talking points') }
   );
 
   return refinements.slice(0, 3);
@@ -391,27 +453,21 @@ function createRefinements(query) {
 
 function createRefinementDisplayItem(summary, refinements, query, mode) {
   const isNoResults = mode === 'fallback';
-  const appliedFilterText = buildAppliedFilters(query).join(' • ');
 
   return {
     cardType: 'refinement',
     id: isNoResults ? 'refinement-fallback' : 'refinement-next-step',
-    eyebrow: isNoResults ? 'Try a broader search' : 'Refine this search',
-    title: isNoResults ? 'Try a broader path' : 'Keep exploring',
-    subtitle: appliedFilterText || 'Broaden or narrow the search',
+    eyebrow: isNoResults ? 'Broaden the sales angle' : 'Refine this pitch',
+    title: isNoResults ? 'Try a broader sales path' : 'Keep exploring',
+    subtitle: buildAppliedFilters(query).join(' • ') || 'Retailer, season, or bundle angle',
     description: isNoResults
-      ? 'The mock catalog did not find an exact match. These refinements broaden the search without losing context.'
-      : 'Use one of these quick refinement links to browse adjacent products, lower the budget, or expand beyond the current filters.',
-    recommendationReason: isNoResults
-      ? 'Refinement links are the safest current action pattern across hosts.'
-      : summary.refinementHint,
+      ? 'These refinements broaden the request without losing the seller context.'
+      : 'Use these quick pivots to shift the conversation by retailer, season, or bundle strategy.',
+    recommendationReason: isNoResults ? 'Broader retailer and seasonal pivots are the fastest way to recover a no-results search.' : summary.refinementHint,
     tagLine: refinements.map((item) => item.label).join(' • '),
-    facts: refinements.map((item, index) => ({
-      title: `Option ${index + 1}`,
-      value: item.label,
-    })),
-    primaryActionTitle: refinements[0]?.label || 'Browse skincare',
-    primaryActionUrl: refinements[0]?.url || buildSearchUrl('hydrating skincare'),
+    facts: refinements.map((item, index) => ({ title: `Option ${index + 1}`, value: item.label })),
+    primaryActionTitle: refinements[0]?.label || 'Summer promotion ideas',
+    primaryActionUrl: refinements[0]?.url || buildSearchUrl('summer promotion ideas'),
     secondaryActionTitle: refinements[1]?.label || '',
     secondaryActionUrl: refinements[1]?.url || '',
     tertiaryActionTitle: refinements[2]?.label || '',
@@ -422,12 +478,12 @@ function createRefinementDisplayItem(summary, refinements, query, mode) {
 function hasActiveConstraints(query) {
   return Boolean(
     query.skinType ||
-    query.concerns.length > 0 ||
-    query.preference ||
-    query.brand ||
-    typeof query.minPrice === 'number' ||
-    typeof query.maxPrice === 'number' ||
-    query.finish
+      query.concerns.length > 0 ||
+      query.preference ||
+      query.brand ||
+      typeof query.minPrice === 'number' ||
+      typeof query.maxPrice === 'number' ||
+      query.finish
   );
 }
 
@@ -438,8 +494,8 @@ function determinePresentationMode(products) {
 
   const topScore = products[0].ranking.score;
   const secondScore = products[1]?.ranking.score ?? -Infinity;
-  const hasStrongLead = topScore >= 6 && (!products[1] || topScore - secondScore >= 1);
-  const hasCompetitiveTopPair = products[1] && topScore >= 5 && topScore - secondScore <= 1;
+  const hasStrongLead = topScore >= 6 && (!products[1] || topScore - secondScore >= 2);
+  const hasCompetitiveTopPair = Boolean(products[1] && topScore >= 5 && topScore - secondScore <= 1);
 
   if (hasStrongLead) {
     return 'featured';
@@ -453,19 +509,13 @@ function determinePresentationMode(products) {
 function buildSummary(query, products) {
   const appliedFilters = buildAppliedFilters(query);
   const presentationMode = determinePresentationMode(products);
-
   const headline = appliedFilters.length > 0
-    ? `Top picks for ${appliedFilters.join(', ')}`
-    : 'Top beauty picks for a broad recommendation request';
-
+    ? `Edgewell sales ideas for ${appliedFilters.join(', ')}`
+    : 'Edgewell portfolio recommendations for a broad seller request';
   const recommendationReason = products.length > 0
-    ? `These picks were ranked for fit, reviews, and how well they align to the requested skin type, concerns, finish, and budget.`
-    : 'No exact products matched every requested filter in the mock catalog.';
-
+    ? 'These picks were ranked for retailer fit, seasonality, bundle potential, and how clearly they support a field sales conversation.'
+    : 'No exact portfolio items matched every requested filter in the mock catalog.';
   const featuredProduct = products[0];
-  const featuredReason = featuredProduct
-    ? `${featuredProduct.productName} is the clearest overall match based on fit, review strength, and the requested filters.`
-    : '';
 
   return {
     headline,
@@ -474,28 +524,22 @@ function buildSummary(query, products) {
     resultCount: products.length,
     presentationMode,
     featuredProductId: featuredProduct?.id || '',
-    featuredReason,
+    featuredReason: featuredProduct
+      ? `${featuredProduct.productName} is the clearest lead because it combines a strong brand story, clear talking points, and practical retail execution.`
+      : '',
     refinementHint: products.length > 0
-      ? 'Try a refinement if you want a lower price, a different finish, or a broader category mix.'
-      : 'Broaden the search by relaxing one filter or switching to a wider concern.'
+      ? 'Use a refinement if you want a different retailer angle, a more seasonal story, or a stronger bundle recommendation.'
+      : 'Broaden the search by relaxing one filter or pivoting to a retailer or seasonal event.',
   };
 }
 
 function buildRecommendationsResponse(rawQuery = {}) {
   const query = normalizeQuery(rawQuery);
-  const requestId = randomUUID();
-  const generatedAt = new Date().toISOString();
   const refinements = createRefinements(query);
-
   const rankedProducts = filterCatalog(query)
-    .map((product) => {
-      const ranking = scoreProduct(product, query);
-      return buildProduct(product, query, ranking);
-    })
-    .filter((product) => product.ranking.score > 0 || !query.skinType && query.concerns.length === 0 && !query.preference)
-    .sort((left, right) => {
-      return right.ranking.score - left.ranking.score || right.rating - left.rating || left.price.current - right.price.current;
-    })
+    .map((product) => buildProduct(product, query, scoreProduct(product, query)))
+    .filter((product) => product.ranking.score > 0 || (!query.skinType && query.concerns.length === 0 && !query.preference && !query.brand))
+    .sort((left, right) => right.ranking.score - left.ranking.score || right.rating - left.rating || left.price.current - right.price.current)
     .slice(0, query.limit);
 
   const summary = buildSummary(query, rankedProducts);
@@ -527,6 +571,7 @@ function buildRecommendationsResponse(rawQuery = {}) {
         });
         break;
     }
+
     if (shouldShowRefinement) {
       displayItems.push(createRefinementDisplayItem(summary, refinements, query, 'results'));
     }
@@ -538,11 +583,11 @@ function buildRecommendationsResponse(rawQuery = {}) {
   }
 
   return {
-    requestId,
+    requestId: randomUUID(),
     status: rankedProducts.length > 0 ? 'success' : 'no_results',
     results: {
       status: rankedProducts.length > 0 ? 'success' : 'no_results',
-      generatedAt,
+      generatedAt: new Date().toISOString(),
       query,
       summary,
       products: rankedProducts,
@@ -556,27 +601,29 @@ function buildRecommendationsResponse(rawQuery = {}) {
 function buildHealthResponse() {
   return {
     status: 'ok',
-    service: 'genie-mock-api',
+    service: 'edgewell-sales-genie-mock-api',
     generatedAt: new Date().toISOString(),
     catalogSize: PRODUCT_CATALOG.length,
-    version: 'v1',
-    mode: 'local-mock-compatible',
+    version: 'v1-edgewell-demo',
+    mode: 'mock',
   };
 }
 
 function buildErrorResponse(statusCode, message, details) {
+  const error = { statusCode, message };
+  if (details) {
+    error.details = details;
+  }
+
   return {
     requestId: randomUUID(),
     status: 'error',
-    error: {
-      statusCode,
-      message,
-      details,
-    },
+    error,
   };
 }
 
 module.exports = {
+  normalizeQuery,
   buildRecommendationsResponse,
   buildHealthResponse,
   buildErrorResponse,

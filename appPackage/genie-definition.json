@@ -2,40 +2,40 @@
   "openapi": "3.0.1",
   "info": {
     "version": "1.1.0",
-    "title": "Genie Beauty Recommendation API",
-    "description": "API for personalized beauty recommendations, richer Adaptive Card display items, and refinement guidance."
+    "title": "Edgewell Sales Genie API",
+    "description": "API for Edgewell field sales recommendations, richer Adaptive Card display items, and retailer refinement guidance."
   },
   "servers": [
     {
       "url": "${{OPENAPI_SERVER_URL}}/api",
-      "description": "Genie local or hosted API"
+      "description": "Edgewell Sales Genie local or hosted API"
     }
   ],
   "paths": {
     "/products/recommendations": {
       "get": {
         "operationId": "getRecommendedProducts",
-        "summary": "Get personalized beauty recommendations",
-        "description": "Returns recommendation data plus card-ready display items for featured product cards, recommendation summary cards, comparison cards, product cards, refinement cards, and no-results fallback cards.",
+        "summary": "Get Edgewell sales recommendations",
+        "description": "Returns seller-focused recommendation data plus card-ready display items for featured product cards, recommendation summary cards, comparison cards, product cards, refinement cards, and no-results fallback cards.",
         "parameters": [
           {
             "name": "age",
             "in": "query",
-            "description": "Optional age range hint used to prioritize products for concerns such as visible aging.",
+            "description": "Optional compatibility field kept for existing callers. It can be used as a loose audience hint.",
             "schema": { "type": "integer", "minimum": 0 },
             "required": false
           },
           {
             "name": "gender",
             "in": "query",
-            "description": "Optional profile detail for tone and wording only.",
+            "description": "Optional compatibility field kept for existing callers. It can be used as a loose audience hint.",
             "schema": { "type": "string" },
             "required": false
           },
           {
             "name": "skinType",
             "in": "query",
-            "description": "Skin type to optimize recommendations for.",
+            "description": "Legacy-compatible shopper segment hint that can still be used for sensitive, dry, oily, normal, or combination shopper needs.",
             "schema": {
               "type": "string",
               "enum": ["dry", "oily", "combination", "normal", "sensitive"]
@@ -45,7 +45,7 @@
           {
             "name": "concerns",
             "in": "query",
-            "description": "One or more target concerns. Repeat the query parameter or provide a comma-separated list.",
+            "description": "One or more sales goals or positioning topics. Repeat the query parameter or provide a comma-separated list. Examples: competitive positioning, summer promotion, back-to-school, bundle, buyer pitch.",
             "schema": {
               "type": "array",
               "items": { "type": "string" }
@@ -57,14 +57,14 @@
           {
             "name": "preference",
             "in": "query",
-            "description": "Desired texture, experience, or shopping preference such as hydrating, dewy, fragrance-free, or lightweight.",
+            "description": "Retailer, channel, or execution context such as Walmart, Target, summer, premium, value, bundle, or men's grooming.",
             "schema": { "type": "string" },
             "required": false
           },
           {
             "name": "brand",
             "in": "query",
-            "description": "Optional exact brand filter.",
+            "description": "Optional exact Edgewell brand filter such as Schick, Banana Boat, Wet Ones, Edge, or Skintimate.",
             "schema": { "type": "string" },
             "required": false
           },
@@ -85,7 +85,7 @@
           {
             "name": "finish",
             "in": "query",
-            "description": "Desired finish for complexion products or moisturizers.",
+            "description": "Legacy-compatible merchandising cue retained for contract stability.",
             "schema": {
               "type": "string",
               "enum": ["matte", "dewy", "natural"]
@@ -107,7 +107,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful recommendation response",
+            "description": "Successful sales recommendation response",
             "content": {
               "application/json": {
                 "schema": {
@@ -268,6 +268,32 @@
           "description": { "type": "string" },
           "imageUrl": { "type": "string", "format": "uri" },
           "productUrl": { "type": "string", "format": "uri" },
+          "keyBenefits": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "competitivePositioning": { "type": "string" },
+          "retailerContext": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "bundleIdeas": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "talkingPoints": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "objectionHandling": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "seasonality": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "suggestedPitch": { "type": "string" },
           "price": { "$ref": "#/components/schemas/ProductPrice" },
           "finish": { "type": "string" },
           "rating": { "type": "number" },
@@ -336,6 +362,11 @@
           "description": { "type": "string", "nullable": true },
           "recommendationReason": { "type": "string", "nullable": true },
           "reasonSignalsText": { "type": "string", "nullable": true },
+          "sellingPointsText": { "type": "string", "nullable": true },
+          "competitiveAngle": { "type": "string", "nullable": true },
+          "suggestedPitch": { "type": "string", "nullable": true },
+          "bundleIdea": { "type": "string", "nullable": true },
+          "retailerContextText": { "type": "string", "nullable": true },
           "highlightLine": { "type": "string", "nullable": true },
           "badgeLine": { "type": "string", "nullable": true },
           "tagLine": { "type": "string", "nullable": true },

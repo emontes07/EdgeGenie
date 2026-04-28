@@ -1,12 +1,12 @@
 {
   "schema_version": "v2.1",
-  "name_for_human": "Genie Beauty Advisor",
-  "description_for_human": "Provides richer beauty product recommendations with recommendation reasons, pricing context, comparison cards, and refinement guidance.",
+  "name_for_human": "Edgewell Sales Genie",
+  "description_for_human": "Provides field sales recommendations, talking points, buyer-ready pitches, and simple retail refinement guidance for Edgewell sellers.",
   "namespace": "genie",
   "functions": [
     {
       "name": "getRecommendedProducts",
-      "description": "Returns curated beauty recommendations and card-ready display items based on profile details such as skin type, concerns, finish, brand, and budget.",
+      "description": "Returns curated Edgewell sales recommendations and card-ready display items based on brand focus, retailer context, seasonal goals, bundle opportunities, and budget.",
       "capabilities": {
         "response_semantics": {
           "data_path": "$.results.displayItems",
@@ -74,6 +74,62 @@
                         "text": "${recommendationReason}",
                         "wrap": true,
                         "spacing": "Small"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "Talking Points",
+                        "weight": "Bolder",
+                        "spacing": "Medium",
+                        "isVisible": "${sellingPointsText != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${sellingPointsText}",
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${sellingPointsText != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "Why It Wins Vs Competitors",
+                        "weight": "Bolder",
+                        "spacing": "Medium",
+                        "isVisible": "${competitiveAngle != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${competitiveAngle}",
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${competitiveAngle != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "Suggested Retail Pitch",
+                        "weight": "Bolder",
+                        "spacing": "Medium",
+                        "isVisible": "${suggestedPitch != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${suggestedPitch}",
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${suggestedPitch != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "Bundle Idea",
+                        "weight": "Bolder",
+                        "spacing": "Medium",
+                        "isVisible": "${bundleIdea != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${bundleIdea}",
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${bundleIdea != ''}"
                       },
                       {
                         "type": "ColumnSet",
@@ -400,6 +456,62 @@
                                 "text": "${recommendationReason}",
                                 "wrap": true,
                                 "spacing": "Small"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "Talking Points",
+                                "weight": "Bolder",
+                                "spacing": "Medium",
+                                "isVisible": "${sellingPointsText != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${sellingPointsText}",
+                                "wrap": true,
+                                "spacing": "Small",
+                                "isVisible": "${sellingPointsText != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "Why It Wins Vs Competitors",
+                                "weight": "Bolder",
+                                "spacing": "Medium",
+                                "isVisible": "${competitiveAngle != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${competitiveAngle}",
+                                "wrap": true,
+                                "spacing": "Small",
+                                "isVisible": "${competitiveAngle != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "Suggested Retail Pitch",
+                                "weight": "Bolder",
+                                "spacing": "Medium",
+                                "isVisible": "${suggestedPitch != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${suggestedPitch}",
+                                "wrap": true,
+                                "spacing": "Small",
+                                "isVisible": "${suggestedPitch != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "Bundle Idea",
+                                "weight": "Bolder",
+                                "spacing": "Medium",
+                                "isVisible": "${bundleIdea != ''}"
+                              },
+                              {
+                                "type": "TextBlock",
+                                "text": "${bundleIdea}",
+                                "wrap": true,
+                                "spacing": "Small",
+                                "isVisible": "${bundleIdea != ''}"
                               }
                             ]
                           }
@@ -450,6 +562,14 @@
                         "wrap": true,
                         "spacing": "None",
                         "isVisible": "${tagLine != ''}"
+                      },
+                      {
+                        "type": "TextBlock",
+                        "text": "${retailerContextText}",
+                        "isSubtle": true,
+                        "wrap": true,
+                        "spacing": "Small",
+                        "isVisible": "${retailerContextText != ''}"
                       },
                       {
                         "type": "FactSet",
@@ -668,13 +788,19 @@
     "localization": {},
     "conversation_starters": [
       {
-        "text": "Build me a skincare routine for dry, sensitive skin."
+        "text": "How do I position Schick vs Gillette?"
       },
       {
-        "text": "Compare dewy complexion products under $35."
+        "text": "What should I pitch for a summer promotion?"
       },
       {
-        "text": "Show products that help with dark spots and dullness."
+        "text": "Give me talking points for Banana Boat at Walmart."
+      },
+      {
+        "text": "What bundle should I recommend for back-to-school?"
+      },
+      {
+        "text": "Create a short retail buyer pitch."
       }
     ]
   }
